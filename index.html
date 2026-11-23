@@ -37,7 +37,6 @@
                 height: 100vh;
             }
         }
-        /* Custom Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
@@ -66,7 +65,6 @@
             border-radius: 999px;
             border: 1px solid #334155;
         }
-        /* 3D Floating Labels */
         .label-3d {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -103,7 +101,6 @@
             display: inline-block;
             box-shadow: 0 0 6px #38bdf8;
         }
-        /* Scrollbar halus untuk panel mobile */
         .custom-scroll::-webkit-scrollbar {
             width: 5px;
         }
@@ -127,7 +124,7 @@
     <!-- Header / Navigasi Atas -->
     <header class="fixed top-0 left-0 right-0 z-30 p-3 md:p-4 flex items-center justify-between pointer-events-none">
         <div class="flex items-center gap-2.5 bg-slate-900/85 backdrop-blur-md border border-slate-700/70 px-3 py-2 rounded-2xl shadow-xl pointer-events-auto">
-            <img src="./assets/ikon_kapal.jpg" alt="Ikon Kapal Selam" onerror="this.style.display='none'" class="w-9 h-9 rounded-xl object-cover border border-sky-400/50 shadow-sm">
+            <img src="./assets/ikon_kapal.jpg" alt="Ikon Kapal Selam" onerror="this.style.display='none'" class="w-10 h-10 rounded-xl object-cover border border-sky-400/60 shadow-sm">
             <div>
                 <h1 class="text-xs md:text-sm font-bold text-sky-400 tracking-wide leading-tight">LAB MAYA FISIKA 3D</h1>
                 <p class="text-[11px] md:text-xs text-slate-300 font-medium">Prinsip Kerja Kapal Selam</p>
@@ -145,7 +142,7 @@
         </div>
     </header>
 
-    <!-- Kartu Penjelasan Komponen (Muncul saat label 3D diklik) -->
+    <!-- Kartu Penjelasan Komponen -->
     <div id="part-info-modal" class="hidden fixed top-16 left-3 right-3 md:left-4 md:right-auto md:w-80 z-40 bg-slate-900/95 backdrop-blur-lg border border-sky-400/60 rounded-2xl p-4 shadow-2xl transition-all">
         <div class="flex items-start justify-between gap-2 mb-2">
             <div>
@@ -163,9 +160,7 @@
 
     <!-- Panel Kontrol & Data Fisika -->
     <aside id="control-panel" class="fixed bottom-0 left-0 right-0 h-[45vh] md:h-auto md:max-h-[calc(100vh-5.5rem)] md:top-20 md:right-4 md:left-auto md:w-96 z-20 bg-slate-900/95 md:bg-slate-900/90 backdrop-blur-xl border-t md:border border-slate-700/80 md:rounded-2xl shadow-2xl flex flex-col transition-transform duration-300">
-        
         <div class="overflow-y-auto custom-scroll p-4 space-y-4 flex-1">
-            
             <!-- Kontrol Slider Volume Air -->
             <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-3.5">
                 <div class="flex justify-between items-center mb-2">
@@ -179,7 +174,7 @@
                     <span>100% (Penuh Air)</span>
                 </div>
 
-                <!-- Tombol Aksi Cepat (Preset) -->
+                <!-- Tombol Aksi Cepat -->
                 <div class="grid grid-cols-3 gap-2 mt-3">
                     <button id="btn-float" class="bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-2 rounded-xl shadow transition flex flex-col items-center justify-center">
                         <span>Mengapung</span>
@@ -216,7 +211,6 @@
                     </div>
                 </div>
 
-                <!-- Perbandingan Visual Massa Jenis -->
                 <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700/60">
                     <div class="flex justify-between items-center text-[11px] font-semibold mb-1">
                         <span class="text-slate-300">Perbandingan Massa Jenis:</span>
@@ -228,7 +222,7 @@
                 </div>
             </div>
 
-            <!-- Kontrol Tambahan & Petunjuk -->
+            <!-- Kontrol Tambahan -->
             <div class="flex items-center justify-between gap-2 pt-1">
                 <button id="btn-toggle-labels-panel" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold py-2 px-3 rounded-xl transition">
                     Sembunyikan Tulisan Bagian
@@ -250,14 +244,13 @@
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x031527);
-        scene.fog = new THREE.FogExp2(0x041e38, 0.022);
+        scene.fog = new THREE.FogExp2(0x041e38, 0.018);
 
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
         container.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -282,19 +275,30 @@
         setupResponsiveCamera();
 
         // ==========================================
-        // 2. PEMUATAN TEKSTUR ASET (.JPG)
+        // 2. PEMUATAN TEKSTUR ASET (.JPG) YANG JELAS
         // ==========================================
         const textureLoader = new THREE.TextureLoader();
 
-        function loadSafeTexture(path, repeatX = 1, repeatY = 1) {
+        function loadAssetTexture(path, repeatX = 1, repeatY = 1, fallbackColorHex = 0x3b82f6) {
+            // Buat tekstur kanvas warna cadangan agar tidak hitam jika dibuka lokal tanpa server
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#' + fallbackColorHex.toString(16).padStart(6, '0');
+            ctx.fillRect(0, 0, 64, 64);
+            const fallbackTex = new THREE.CanvasTexture(canvas);
+
             const tex = textureLoader.load(
                 path,
-                (loadedTex) => {
-                    loadedTex.needsUpdate = true;
+                (loaded) => {
+                    loaded.encoding = THREE.sRGBEncoding;
+                    loaded.needsUpdate = true;
                 },
                 undefined,
                 () => {
-                    console.warn('Aset belum ditemukan, menggunakan warna standar:', path);
+                    tex.image = fallbackTex.image;
+                    tex.needsUpdate = true;
                 }
             );
             if (repeatX > 1 || repeatY > 1) {
@@ -305,147 +309,140 @@
             return tex;
         }
 
-        const texPasirLaut = loadSafeTexture('./assets/pasir_laut.jpg', 8, 8);
-        const texBesiKapal = loadSafeTexture('./assets/besi_kapal.jpg', 2, 1);
-        const texDindingKru = loadSafeTexture('./assets/dinding_kru.jpg', 2, 2);
-        const texKarang = loadSafeTexture('./assets/karang.jpg', 1, 1);
+        const texPasirLaut = loadAssetTexture('./assets/pasir_laut.jpg', 6, 6, 0x1e3a5f);
+        const texBesiKapal = loadAssetTexture('./assets/besi_kapal.jpg', 3, 2, 0xeab308);
+        const texDindingKru = loadAssetTexture('./assets/dinding_kru.jpg', 2, 2, 0x64748b);
+        const texKarang = loadAssetTexture('./assets/karang.jpg', 1, 1, 0xf97316);
 
         // ==========================================
         // 3. PENCAHAYAAN & LINGKUNGAN BAWAH LAUT
         // ==========================================
-        const ambientLight = new THREE.AmbientLight(0x7dd3fc, 0.85);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.15);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.3);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.25);
         sunLight.position.set(8, 18, 10);
-        sunLight.castShadow = true;
         scene.add(sunLight);
 
-        const underGlow = new THREE.PointLight(0x0ea5e9, 1.1, 30);
-        underGlow.position.set(0, -5, 6);
+        const underGlow = new THREE.PointLight(0x38bdf8, 0.9, 35);
+        underGlow.position.set(0, -4, 8);
         scene.add(underGlow);
 
-        // Permukaan Air Laut (Y = 2.6)
         const SURFACE_Y = 2.6;
         const SEA_FLOOR_Y = -5.4;
 
-        // Bidang Permukaan Air
-        const waterSurfaceGeo = new THREE.PlaneGeometry(60, 60, 32, 32);
-        const waterSurfaceMat = new THREE.MeshStandardMaterial({
-            color: 0x38bdf8,
-            transparent: true,
-            opacity: 0.42,
-            roughness: 0.15,
-            metalness: 0.3,
-            side: THREE.DoubleSide
-        });
-        const waterSurface = new THREE.Mesh(waterSurfaceGeo, waterSurfaceMat);
+        // Permukaan Air Laut
+        const waterSurface = new THREE.Mesh(
+            new THREE.PlaneGeometry(60, 60),
+            new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.38,
+                roughness: 0.15,
+                side: THREE.DoubleSide
+            })
+        );
         waterSurface.rotation.x = -Math.PI / 2;
         waterSurface.position.y = SURFACE_Y;
         scene.add(waterSurface);
 
-        // Garis Batas Permukaan Laut yang Jelas
-        const waterLineGeo = new THREE.BoxGeometry(60, 0.08, 0.12);
-        const waterLineMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc });
-        const waterLine = new THREE.Mesh(waterLineGeo, waterLineMat);
+        // Garis Permukaan Laut
+        const waterLine = new THREE.Mesh(
+            new THREE.BoxGeometry(60, 0.08, 0.12),
+            new THREE.MeshBasicMaterial({ color: 0x7dd3fc })
+        );
         waterLine.position.set(0, SURFACE_Y, 2.2);
         scene.add(waterLine);
 
-        // Langit / Atmosfer di Atas Air
-        const skyGeo = new THREE.PlaneGeometry(60, 15);
-        const skyMat = new THREE.MeshBasicMaterial({ color: 0x0c4a6e, side: THREE.DoubleSide });
-        const skyBackdrop = new THREE.Mesh(skyGeo, skyMat);
+        // Latar Langit
+        const skyBackdrop = new THREE.Mesh(
+            new THREE.PlaneGeometry(60, 15),
+            new THREE.MeshBasicMaterial({ color: 0x0c4a6e, side: THREE.DoubleSide })
+        );
         skyBackdrop.position.set(0, SURFACE_Y + 7.5, -18);
         scene.add(skyBackdrop);
 
-        // Dasar Laut dengan Tekstur pasir_laut.jpg
-        const seaFloorGeo = new THREE.PlaneGeometry(60, 60);
-        const seaFloorMat = new THREE.MeshStandardMaterial({
-            color: 0xdbeafe,
-            map: texPasirLaut,
-            roughness: 0.9,
-            metalness: 0.05
-        });
-        const seaFloor = new THREE.Mesh(seaFloorGeo, seaFloorMat);
+        // Dasar Laut dengan Warna Putih (0xffffff) agar Gambar pasir_laut.jpg Tampil Asli & Jelas
+        const seaFloor = new THREE.Mesh(
+            new THREE.PlaneGeometry(60, 60),
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                map: texPasirLaut,
+                roughness: 0.85
+            })
+        );
         seaFloor.rotation.x = -Math.PI / 2;
         seaFloor.position.y = SEA_FLOOR_Y;
-        seaFloor.receiveShadow = true;
         scene.add(seaFloor);
 
-        // Hiasan Terumbu Karang & Batu Dasar Laut menggunakan karang.jpg
+        // Hiasan Terumbu Karang di Dasar Laut menggunakan Gambar karang.jpg Secara Utuh
         const coralGroup = new THREE.Group();
-        const coralMat = new THREE.MeshStandardMaterial({
+        const coralMat = new THREE.MeshBasicMaterial({
             map: texKarang,
-            color: 0xffedd5,
-            roughness: 0.6
+            color: 0xffffff,
+            side: THREE.DoubleSide,
+            blending: THREE.NormalBlending
         });
-        const coralPositions = [
-            { x: -6.5, z: -2.5, s: 0.8 },
-            { x: -4.2, z: -3.2, s: 0.6 },
-            { x: 5.8, z: -2.8, s: 0.9 },
-            { x: 7.5, z: -1.8, s: 0.65 },
-            { x: -7.8, z: 1.5, s: 0.7 },
-            { x: 6.8, z: 2.0, s: 0.75 }
+
+        const coralConfigs = [
+            { x: -6.2, z: -2.2, w: 2.2, h: 2.2 },
+            { x: -3.5, z: -3.5, w: 1.7, h: 1.7 },
+            { x: 3.8, z: -3.4, w: 1.8, h: 1.8 },
+            { x: 6.4, z: -2.0, w: 2.3, h: 2.3 }
         ];
-        coralPositions.forEach(pos => {
-            const cGeo = new THREE.DodecahedronGeometry(pos.s, 1);
-            const cMesh = new THREE.Mesh(cGeo, coralMat);
-            cMesh.position.set(pos.x, SEA_FLOOR_Y + pos.s * 0.55, pos.z);
-            cMesh.scale.set(1.2, 1.4, 1.0);
-            coralGroup.add(cMesh);
+        coralConfigs.forEach(cfg => {
+            const cPlane = new THREE.Mesh(new THREE.PlaneGeometry(cfg.w, cfg.h), coralMat);
+            cPlane.position.set(cfg.x, SEA_FLOOR_Y + cfg.h * 0.48, cfg.z);
+            coralGroup.add(cPlane);
         });
         scene.add(coralGroup);
 
         // ==========================================
-        // 4. MODEL KAPAL SELAM 3D (CUTAWAY / TRANSPARAN)
+        // 4. MODEL KAPAL SELAM 3D (DENGAN TEKSTUR JELAS)
         // ==========================================
         const submarine = new THREE.Group();
         scene.add(submarine);
 
-        // Material Lambung Luar Semi-Transparan dengan Tekstur besi_kapal.jpg
+        // Lambung Luar Semi-Transparan dengan Tekstur besi_kapal.jpg (color putih agar tekstur asli muncul)
         const hullOuterMat = new THREE.MeshStandardMaterial({
-            color: 0xfacc15,
+            color: 0xffffff,
             map: texBesiKapal,
             transparent: true,
-            opacity: 0.34,
+            opacity: 0.48,
             roughness: 0.35,
-            metalness: 0.4,
+            metalness: 0.3,
             side: THREE.DoubleSide,
             depthWrite: false
         });
 
-        // Material Rangka Logam Solid
+        // Rangka & Menara Solid dengan Tekstur besi_kapal.jpg Penuh (Tanpa Transparansi)
         const metalTrimMat = new THREE.MeshStandardMaterial({
-            color: 0xeab308,
+            color: 0xffffff,
             map: texBesiKapal,
             roughness: 0.4,
-            metalness: 0.6
+            metalness: 0.45
         });
 
-        // 1. Lambung Utama (Silinder & Haluan/Buritan)
-        const mainHullGeo = new THREE.CylinderGeometry(1.55, 1.55, 5.4, 32, 1, true);
-        const mainHull = new THREE.Mesh(mainHullGeo, hullOuterMat);
+        // Lambung Utama
+        const mainHull = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.55, 5.4, 32, 1, true), hullOuterMat);
         mainHull.rotation.z = Math.PI / 2;
         submarine.add(mainHull);
 
-        // Haluan Depan (Kanan)
-        const noseGeo = new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-        const nose = new THREE.Mesh(noseGeo, hullOuterMat);
+        // Haluan Depan (Solid bertekstur besi kapal agar sangat terlihat)
+        const nose = new THREE.Mesh(new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), metalTrimMat);
         nose.rotation.z = -Math.PI / 2;
         nose.position.x = 2.7;
         submarine.add(nose);
 
-        // Buritan Belakang (Kiri)
-        const tailGeo = new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-        const tail = new THREE.Mesh(tailGeo, hullOuterMat);
+        // Buritan Belakang (Solid bertekstur besi kapal)
+        const tail = new THREE.Mesh(new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), metalTrimMat);
         tail.rotation.z = Math.PI / 2;
         tail.position.x = -2.7;
         submarine.add(tail);
 
-        // Cincin Rangka Cutaway agar bentuk kapal sangat tegas
+        // Cincin Rangka Cutaway
         [-2.7, -1.25, 1.25, 2.7].forEach(xPos => {
-            const ringGeo = new THREE.TorusGeometry(1.56, 0.05, 12, 36);
-            const ring = new THREE.Mesh(ringGeo, metalTrimMat);
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.56, 0.06, 12, 36), metalTrimMat);
             ring.rotation.y = Math.PI / 2;
             ring.position.x = xPos;
             submarine.add(ring);
@@ -464,9 +461,8 @@
         }
         submarine.add(propellerGroup);
 
-        // Menara Kapal (Conning Tower) & Periskop
-        const towerGeo = new THREE.CylinderGeometry(0.65, 0.78, 1.15, 24);
-        const tower = new THREE.Mesh(towerGeo, metalTrimMat);
+        // Menara Kapal
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.78, 1.15, 24), metalTrimMat);
         tower.position.set(0.2, 1.95, 0);
         submarine.add(tower);
 
@@ -486,20 +482,21 @@
         periscopeGroup.add(periPipe, periHead);
         submarine.add(periscopeGroup);
 
-        // 2. RUANG KRU (Kedap Air di Bagian Tengah) dengan tekstur dinding_kru.jpg
+        // RUANG KRU dengan Tekstur dinding_kru.jpg Asli
         const crewRoomGroup = new THREE.Group();
-        const crewWallGeo = new THREE.CylinderGeometry(1.18, 1.18, 2.4, 28);
-        const crewWallMat = new THREE.MeshStandardMaterial({
-            color: 0x94a3b8,
-            map: texDindingKru,
-            roughness: 0.45,
-            metalness: 0.5
-        });
-        const crewRoom = new THREE.Mesh(crewWallGeo, crewWallMat);
+        const crewRoom = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.18, 1.18, 2.4, 28),
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                map: texDindingKru,
+                roughness: 0.45,
+                metalness: 0.35
+            })
+        );
         crewRoom.rotation.z = Math.PI / 2;
         crewRoomGroup.add(crewRoom);
 
-        // Sekat Kedap Air Kiri & Kanan Ruang Kru
+        // Sekat Kedap Air
         [-1.22, 1.22].forEach(xPos => {
             const bulkhead = new THREE.Mesh(
                 new THREE.CylinderGeometry(1.48, 1.48, 0.1, 32),
@@ -510,7 +507,7 @@
             crewRoomGroup.add(bulkhead);
         });
 
-        // Jendela Kaca Ruang Kru (menunjukkan ruang tetap kering & terang)
+        // Jendela Ruang Kru
         const windowMesh = new THREE.Mesh(
             new THREE.CylinderGeometry(0.32, 0.32, 0.15, 24),
             new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xfacc15, emissiveIntensity: 0.7 })
@@ -520,7 +517,7 @@
         crewRoomGroup.add(windowMesh);
         submarine.add(crewRoomGroup);
 
-        // 3. TANGKI PEMBERAT (BALLAST TANKS - Kiri & Kanan)
+        // TANGKI PEMBERAT
         const ballastWaterMat = new THREE.MeshStandardMaterial({
             color: 0x0284c7,
             emissive: 0x0369a1,
@@ -543,14 +540,11 @@
             const tankGroup = new THREE.Group();
             tankGroup.position.set(xPos, -0.1, 0);
 
-            // Dinding luar tangki transparan
             const casing = new THREE.Mesh(new THREE.CylinderGeometry(1.22, 1.22, 1.3, 24), tankCasingMat);
             casing.rotation.z = Math.PI / 2;
             tankGroup.add(casing);
 
-            // Air dinamis di dalam tangki (menggunakan kotak/silinder yang diskalakan dari bawah)
             const waterFillGeo = new THREE.BoxGeometry(1.24, 2.2, 1.85);
-            // Geser pivot ke bawah agar scale.y naik dari dasar tangki
             waterFillGeo.translate(0, 1.1, 0);
             const waterFill = new THREE.Mesh(waterFillGeo, ballastWaterMat);
             waterFill.position.y = -1.1;
@@ -560,37 +554,34 @@
             ballastTanks.push(waterFill);
         });
 
-        // 4. TANGKI KOMPRESI UDARA (Tabung Tekanan Tinggi di Atas Ruang Kru)
-        const airTankMat = new THREE.MeshStandardMaterial({
-            color: 0xf97316,
-            roughness: 0.3,
-            metalness: 0.6
-        });
-        const compAirTank = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.8, 20), airTankMat);
+        // TANGKI KOMPRESI UDARA
+        const compAirTank = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.24, 0.24, 1.8, 20),
+            new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3, metalness: 0.6 })
+        );
         compAirTank.rotation.z = Math.PI / 2;
         compAirTank.position.set(0, 1.05, 0.45);
         submarine.add(compAirTank);
 
-        // Pipa Saluran Udara Kompresi ke Tangki Pemberat
-        const pipeMat = new THREE.MeshStandardMaterial({ color: 0xfdba74, metalness: 0.7, roughness: 0.3 });
-        const airPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.8, 12), pipeMat);
+        const airPipe = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 3.8, 12),
+            new THREE.MeshStandardMaterial({ color: 0xfdba74, metalness: 0.7, roughness: 0.3 })
+        );
         airPipe.rotation.z = Math.PI / 2;
         airPipe.position.set(0, 1.05, 0.45);
         submarine.add(airPipe);
 
-        // 5. KATUP (VALVES) Atas & Bawah pada Tangki Pemberat
+        // KATUP (VALVES)
         const valveMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
         const topValves = [];
         const bottomValves = [];
 
         [-1.95, 1.95].forEach(xPos => {
-            // Katup Udara Atas
             const topV = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.14, 0.35), valveMat);
             topV.position.set(xPos, 1.48, 0);
             submarine.add(topV);
             topValves.push(topV);
 
-            // Katup Air Bawah
             const botV = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.38), valveMat);
             botV.position.set(xPos, -1.48, 0);
             submarine.add(botV);
@@ -598,7 +589,7 @@
         });
 
         // ==========================================
-        // 5. SISTEM PARTIKEL GELEMBUNG & UDARA KOMPRESI
+        // 5. PARTIKEL GELEMBUNG
         // ==========================================
         const bubbles = [];
         const bubbleGeo = new THREE.SphereGeometry(0.07, 8, 8);
@@ -712,7 +703,6 @@
                 const x = (tempVec.x * 0.5 + 0.5) * canvasRect.width + canvasRect.left;
                 const y = (-(tempVec.y * 0.5) + 0.5) * canvasRect.height + canvasRect.top;
 
-                // Sembunyikan jika label keluar dari batas area kanvas 3D
                 if (y < canvasRect.top + 48 || y > canvasRect.bottom - 12 || x < 20 || x > window.innerWidth - 20) {
                     el.style.display = 'none';
                 } else {
@@ -742,19 +732,15 @@
         function updateSimulationPhysics(percent) {
             waterPercentDisplay.textContent = `${Math.round(percent)}%`;
 
-            // Hitung massa jenis rata-rata kapal: 750 kg/m3 (0% air) hingga 1300 kg/m3 (100% air)
             const rhoAir = 1025;
             const rhoKapal = Math.round(750 + (percent / 100) * 550);
             shipDensityDisplay.innerHTML = `${rhoKapal} <span class="text-[10px] font-normal text-slate-400">kg/m³</span>`;
 
-            // Tentukan status & target kedalaman Y
-            // Batas bawah aman di atas dasar laut agar kapal tidak tenggelam melewati panel HP
-            const minSafeY = SEA_FLOOR_Y + 1.85; // -3.55
-            const maxFloatY = SURFACE_Y - 0.45;  // 2.15 (menara & sebagian atas lambung muncul)
+            const minSafeY = SEA_FLOOR_Y + 1.85;
+            const maxFloatY = SURFACE_Y - 0.45;
             const hoverY = -0.85;
 
             if (percent <= 35) {
-                // MENGAPUNG
                 const ratio = percent / 35;
                 targetSubY = maxFloatY - ratio * 0.55;
                 statusBadge.textContent = 'MENGAPUNG';
@@ -763,7 +749,6 @@
                 densityFormula.className = 'text-emerald-400 font-mono';
                 statusExplanation.textContent = 'Tangki pemberat didominasi udara sehingga massa jenis total kapal lebih kecil dari air laut. Menara kapal muncul ke permukaan.';
             } else if (percent <= 65) {
-                // MELAYANG
                 const ratio = (percent - 35) / 30;
                 targetSubY = (maxFloatY - 0.55) - ratio * (maxFloatY - 0.55 - hoverY) - (ratio * 0.6);
                 statusBadge.textContent = 'MELAYANG';
@@ -772,7 +757,6 @@
                 densityFormula.className = 'text-amber-400 font-mono';
                 statusExplanation.textContent = 'Volume air dan udara di tangki pemberat seimbang. Gaya berat kapal sama besar dengan gaya angkat Archimedes (W = Fa) sehingga kapal melayang stabil.';
             } else {
-                // MENYELAM
                 const ratio = (percent - 65) / 35;
                 targetSubY = (hoverY - 0.6) - ratio * ((hoverY - 0.6) - minSafeY);
                 statusBadge.textContent = 'MENYELAM';
@@ -783,7 +767,6 @@
             }
         }
 
-        // Event Slider Manual
         waterSlider.addEventListener('input', (e) => {
             if (autoPresetInterval) {
                 clearInterval(autoPresetInterval);
@@ -793,7 +776,6 @@
             updateSimulationPhysics(targetWaterPercent);
         });
 
-        // Fungsi Animasi Preset Otomatis
         function animateToPreset(goalPercent) {
             if (autoPresetInterval) clearInterval(autoPresetInterval);
             autoPresetInterval = setInterval(() => {
@@ -816,7 +798,6 @@
         document.getElementById('btn-hover').addEventListener('click', () => animateToPreset(50));
         document.getElementById('btn-dive').addEventListener('click', () => animateToPreset(92));
 
-        // Toggle Label 3D (Header & Panel)
         function toggleLabels() {
             labelsVisible = !labelsVisible;
             const indicator = document.getElementById('label-indicator');
@@ -834,7 +815,6 @@
         document.getElementById('btn-toggle-labels').addEventListener('click', toggleLabels);
         document.getElementById('btn-toggle-labels-panel').addEventListener('click', toggleLabels);
 
-        // Toggle Sembunyikan / Tampilkan Panel Kontrol
         const controlPanel = document.getElementById('control-panel');
         const panelBtnText = document.getElementById('panel-btn-text');
         let panelHidden = false;
@@ -856,7 +836,6 @@
             }, 310);
         });
 
-        // Reset Kamera
         document.getElementById('btn-reset-cam').addEventListener('click', setupResponsiveCamera);
 
         // ==========================================
@@ -869,22 +848,19 @@
             requestAnimationFrame(animate);
             const elapsed = clock.getElapsedTime();
 
-            // Interpolasi halus ketinggian air tangki pemberat
             const prevWater = currentWaterPercent;
             currentWaterPercent += (targetWaterPercent - currentWaterPercent) * 0.08;
             const waterDelta = currentWaterPercent - prevWater;
 
-            // Update ketinggian mesh air di dalam tangki pemberat
             const fillScale = Math.max(0.01, currentWaterPercent / 100);
             ballastTanks.forEach(tankWater => {
                 tankWater.scale.y = fillScale;
             });
 
-            // Animasi Katup & Gelembung saat terjadi perubahan volume air
-            const isDivingProcess = waterDelta > 0.04;     // Air masuk, udara keluar ke atas
-            const isFloatingProcess = waterDelta < -0.04; // Udara kompresi masuk, air terdorong keluar ke bawah
+            const isDivingProcess = waterDelta > 0.04;
+            const isFloatingProcess = waterDelta < -0.04;
 
-            topValves.forEach((v, idx) => {
+            topValves.forEach((v) => {
                 v.rotation.z = isDivingProcess ? 0.55 : 0;
                 if (isDivingProcess && Math.random() < 0.35) {
                     const worldPos = new THREE.Vector3();
@@ -893,7 +869,7 @@
                 }
             });
 
-            bottomValves.forEach((v, idx) => {
+            bottomValves.forEach((v) => {
                 v.rotation.z = (isDivingProcess || isFloatingProcess) ? -0.55 : 0;
                 if (isFloatingProcess && Math.random() < 0.45) {
                     const worldPos = new THREE.Vector3();
@@ -902,7 +878,6 @@
                 }
             });
 
-            // Update partikel gelembung
             for (let i = bubbles.length - 1; i >= 0; i--) {
                 const b = bubbles[i];
                 b.mesh.position.y += b.vy;
@@ -914,16 +889,12 @@
                 }
             }
 
-            // Interpolasi gerakan vertikal kapal selam + efek ayunan gelombang alami
             currentSubY += (targetSubY - currentSubY) * 0.045;
             const surfaceWave = currentWaterPercent <= 35 ? Math.sin(elapsed * 2.2) * 0.06 : Math.sin(elapsed * 1.2) * 0.02;
             submarine.position.y = currentSubY + surfaceWave;
             submarine.rotation.z = Math.sin(elapsed * 1.5) * 0.018;
 
-            // Putar baling-baling
             propellerGroup.rotation.x += 0.08;
-
-            // Riak lembut permukaan air
             waterSurface.position.y = SURFACE_Y + Math.sin(elapsed * 1.8) * 0.025;
 
             controls.update();
