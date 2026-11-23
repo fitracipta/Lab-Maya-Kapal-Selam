@@ -21,8 +21,16 @@
         }
         #canvas-container {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 55vh;
             z-index: 0;
+        }
+        @media (min-width: 768px) {
+            #canvas-container {
+                height: 100vh;
+            }
         }
         /* Custom Scrollbar for mobile/panel */
         ::-webkit-scrollbar {
@@ -116,7 +124,7 @@
     <div id="canvas-container"></div>
 
     <!-- Container for 3D Projected Labels -->
-    <div id="labels-container" class="fixed inset-0 pointer-events-none z-10 overflow-hidden"></div>
+    <div id="labels-container" class="fixed top-0 left-0 right-0 h-[55vh] md:h-screen pointer-events-none z-10 overflow-hidden"></div>
 
     <!-- Top Header & Quick Action Controls -->
     <header class="fixed top-0 left-0 right-0 z-20 p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
@@ -181,8 +189,8 @@
     </div>
 
     <!-- Responsive Control & Physics Data Panel -->
-    <!-- Desktop: Floating on Right | Mobile/Tablet: Fixed at Bottom & Scrollable -->
-    <aside class="fixed bottom-0 left-0 right-0 md:top-20 md:bottom-4 md:left-auto md:right-4 md:w-96 z-20 max-h-[46vh] md:max-h-none overflow-y-auto bg-slate-900/85 backdrop-blur-xl border-t md:border border-slate-700/80 rounded-t-3xl md:rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4">
+    <!-- Desktop: Floating on Right | Mobile/Tablet: Fixed at Bottom (45vh) without covering 3D Submarine -->
+    <aside class="fixed bottom-0 left-0 right-0 h-[45vh] md:h-auto md:top-20 md:bottom-4 md:left-auto md:right-4 md:w-96 z-20 overflow-y-auto bg-slate-900/95 md:bg-slate-900/85 backdrop-blur-xl border-t md:border border-slate-700/80 rounded-t-3xl md:rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col gap-3.5 sm:gap-4">
 
         <!-- Section 1: Kontrol Tangki Pemberat -->
         <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3.5">
@@ -306,12 +314,22 @@
         scene.background = new THREE.Color(0x041426);
         scene.fog = new THREE.FogExp2(0x041e38, 0.018);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
-        const defaultCamPos = new THREE.Vector3(0, 1.5, 16.5);
+        function getCanvasDimensions() {
+            const isMobile = window.innerWidth < 768;
+            return {
+                width: window.innerWidth,
+                height: isMobile ? window.innerHeight * 0.55 : window.innerHeight,
+                isMobile: isMobile
+            };
+        }
+
+        const initDims = getCanvasDimensions();
+        const camera = new THREE.PerspectiveCamera(45, initDims.width / initDims.height, 0.1, 200);
+        const defaultCamPos = new THREE.Vector3(0, 1.5, initDims.isMobile ? 21.5 : 16.5);
         camera.position.copy(defaultCamPos);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(initDims.width, initDims.height);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -321,9 +339,9 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.06;
         controls.minDistance = 6;
-        controls.maxDistance = 32;
+        controls.maxDistance = 35;
         controls.maxPolarAngle = Math.PI * 0.88;
-        controls.target.set(0, -1.5, 0);
+        controls.target.set(0, initDims.isMobile ? -1.8 : -1.5, 0);
 
         // --- 3. PENCAHAYAAN (LIGHTING) ---
         const ambientLight = new THREE.AmbientLight(0x7dd3fc, 0.65);
@@ -851,7 +869,7 @@
                 return;
             }
             labelsContainer.style.opacity = '1';
-
+            const dims = getCanvasDimensions();
             const tempV = new THREE.Vector3();
             labelDefinitions.forEach(def => {
                 tempV.copy(def.localPos);
@@ -865,8 +883,8 @@
                     return;
                 }
 
-                const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (-(tempV.y * 0.5) + 0.5) * window.innerHeight;
+                const x = (tempV.x * 0.5 + 0.5) * dims.width;
+                const y = (-(tempV.y * 0.5) + 0.5) * dims.height;
 
                 def.element.style.opacity = '1';
                 def.element.style.pointerEvents = 'auto';
@@ -1013,16 +1031,18 @@
 
         // Reset Kamera
         document.getElementById('btn-reset-cam').addEventListener('click', () => {
-            camera.position.copy(defaultCamPos);
-            controls.target.set(0, -1.5, 0);
+            const dims = getCanvasDimensions();
+            camera.position.set(0, 1.5, dims.isMobile ? 21.5 : 16.5);
+            controls.target.set(0, dims.isMobile ? -1.8 : -1.5, 0);
             controls.update();
         });
 
         // Responsif Resize Window
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const dims = getCanvasDimensions();
+            camera.aspect = dims.width / dims.height;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(dims.width, dims.height);
         });
 
         // --- 10. ANIMATION LOOP UTAMA ---
