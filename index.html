@@ -68,11 +68,11 @@
         .label-3d {
             position: absolute;
             transform: translate(-50%, -50%);
-            background: rgba(15, 23, 42, 0.88);
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(6px);
-            border: 1px solid rgba(56, 189, 248, 0.65);
+            border: 1px solid rgba(56, 189, 248, 0.7);
             color: #f1f5f9;
-            padding: 5px 10px;
+            padding: 4px 10px;
             border-radius: 999px;
             font-size: 11px;
             font-weight: 600;
@@ -80,8 +80,8 @@
             cursor: pointer;
             pointer-events: auto;
             user-select: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
             z-index: 10;
             display: flex;
             align-items: center;
@@ -91,7 +91,7 @@
             background: #0284c7;
             border-color: #ffffff;
             transform: translate(-50%, -50%) scale(1.08);
-            z-index: 20;
+            z-index: 25;
         }
         .label-dot {
             width: 7px;
@@ -124,7 +124,7 @@
     <!-- Header / Navigasi Atas -->
     <header class="fixed top-0 left-0 right-0 z-30 p-3 md:p-4 flex items-center justify-between pointer-events-none">
         <div class="flex items-center gap-2.5 bg-slate-900/85 backdrop-blur-md border border-slate-700/70 px-3 py-2 rounded-2xl shadow-xl pointer-events-auto">
-            <img src="./assets/ikon_kapal.jpg" alt="Ikon Kapal Selam" onerror="this.style.display='none'" class="w-10 h-10 rounded-xl object-cover border border-sky-400/60 shadow-sm">
+            <img src="./assets/ikon_kapal.jpg" alt="Ikon" onerror="this.style.display='none'" class="w-9 h-9 rounded-xl object-cover border border-sky-400/60 shadow-sm">
             <div>
                 <h1 class="text-xs md:text-sm font-bold text-sky-400 tracking-wide leading-tight">LAB MAYA FISIKA 3D</h1>
                 <p class="text-[11px] md:text-xs text-slate-300 font-medium">Prinsip Kerja Kapal Selam</p>
@@ -243,8 +243,8 @@
         // ==========================================
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x031527);
-        scene.fog = new THREE.FogExp2(0x041e38, 0.018);
+        scene.background = new THREE.Color(0x03172b);
+        scene.fog = new THREE.FogExp2(0x041e38, 0.017);
 
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -275,44 +275,129 @@
         setupResponsiveCamera();
 
         // ==========================================
-        // 2. PEMUATAN TEKSTUR ASET (.JPG) YANG JELAS
+        // 2. GENERATOR TEKSTUR PROSEDURAL & PEMUAT ASET
         // ==========================================
-        const textureLoader = new THREE.TextureLoader();
-
-        function loadAssetTexture(path, repeatX = 1, repeatY = 1, fallbackColorHex = 0x3b82f6) {
-            // Buat tekstur kanvas warna cadangan agar tidak hitam jika dibuka lokal tanpa server
+        function createMetalPlateTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
+            canvas.width = 512;
+            canvas.height = 512;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#' + fallbackColorHex.toString(16).padStart(6, '0');
-            ctx.fillRect(0, 0, 64, 64);
-            const fallbackTex = new THREE.CanvasTexture(canvas);
 
-            const tex = textureLoader.load(
-                path,
-                (loaded) => {
-                    loaded.encoding = THREE.sRGBEncoding;
-                    loaded.needsUpdate = true;
-                },
-                undefined,
-                () => {
-                    tex.image = fallbackTex.image;
-                    tex.needsUpdate = true;
-                }
-            );
-            if (repeatX > 1 || repeatY > 1) {
-                tex.wrapS = THREE.RepeatWrapping;
-                tex.wrapT = THREE.RepeatWrapping;
-                tex.repeat.set(repeatX, repeatY);
-            }
+            const grad = ctx.createLinearGradient(0, 0, 512, 512);
+            grad.addColorStop(0, '#eab308');
+            grad.addColorStop(0.5, '#facc15');
+            grad.addColorStop(1, '#ca8a04');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            ctx.strokeStyle = 'rgba(113, 63, 18, 0.45)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(4, 4, 248, 248);
+            ctx.strokeRect(260, 4, 248, 248);
+            ctx.strokeRect(4, 260, 248, 248);
+            ctx.strokeRect(260, 260, 248, 248);
+
+            ctx.fillStyle = 'rgba(254, 240, 138, 0.7)';
+            const rivets = [18, 128, 238, 274, 384, 494];
+            rivets.forEach(x => {
+                [18, 238, 274, 494].forEach(y => {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding;
             return tex;
         }
 
-        const texPasirLaut = loadAssetTexture('./assets/pasir_laut.jpg', 6, 6, 0x1e3a5f);
-        const texBesiKapal = loadAssetTexture('./assets/besi_kapal.jpg', 3, 2, 0xeab308);
-        const texDindingKru = loadAssetTexture('./assets/dinding_kru.jpg', 2, 2, 0x64748b);
-        const texKarang = loadAssetTexture('./assets/karang.jpg', 1, 1, 0xf97316);
+        function createSandTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#1e3a5f';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let y = 0; y < 512; y += 32) {
+                ctx.strokeStyle = y % 64 === 0 ? 'rgba(56, 189, 248, 0.22)' : 'rgba(15, 23, 42, 0.35)';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                for (let x = 0; x <= 512; x += 16) {
+                    const waveY = y + Math.sin((x / 512) * Math.PI * 4) * 6;
+                    if (x === 0) ctx.moveTo(x, waveY);
+                    else ctx.lineTo(x, waveY);
+                }
+                ctx.stroke();
+            }
+
+            for (let i = 0; i < 600; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(148, 163, 184, 0.25)' : 'rgba(15, 23, 42, 0.3)';
+                ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3);
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding;
+            return tex;
+        }
+
+        function createCrewWallTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(0, 0, 512, 512);
+
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 4;
+            for (let x = 0; x < 512; x += 128) {
+                ctx.strokeRect(x + 4, 4, 120, 504);
+            }
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(30, 120, 68, 24);
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(158, 120, 68, 24);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(286, 120, 68, 24);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding;
+            return tex;
+        }
+
+        const textureLoader = new THREE.TextureLoader();
+
+        function loadSmartTexture(path, fallbackCanvasTex, repeatX = 1, repeatY = 1) {
+            const activeTex = fallbackCanvasTex;
+            if (repeatX > 1 || repeatY > 1) {
+                activeTex.wrapS = THREE.RepeatWrapping;
+                activeTex.wrapT = THREE.RepeatWrapping;
+                activeTex.repeat.set(repeatX, repeatY);
+            }
+
+            textureLoader.load(
+                path,
+                (loadedImgTex) => {
+                    loadedImgTex.encoding = THREE.sRGBEncoding;
+                    activeTex.image = loadedImgTex.image;
+                    activeTex.needsUpdate = true;
+                },
+                undefined,
+                () => {
+                    // Tetap gunakan tekstur prosedural berdetail tinggi
+                }
+            );
+            return activeTex;
+        }
+
+        const texPasirLaut = loadSmartTexture('./assets/pasir_laut.jpg', createSandTexture(), 8, 8);
+        const texBesiKapal = loadSmartTexture('./assets/besi_kapal.jpg', createMetalPlateTexture(), 3, 2);
+        const texDindingKru = loadSmartTexture('./assets/dinding_kru.jpg', createCrewWallTexture(), 2, 2);
+        const texKarang = loadSmartTexture('./assets/karang.jpg', createMetalPlateTexture(), 1, 1);
 
         // ==========================================
         // 3. PENCAHAYAAN & LINGKUNGAN BAWAH LAUT
@@ -346,7 +431,7 @@
         waterSurface.position.y = SURFACE_Y;
         scene.add(waterSurface);
 
-        // Garis Permukaan Laut
+        // Garis Batas Permukaan Laut
         const waterLine = new THREE.Mesh(
             new THREE.BoxGeometry(60, 0.08, 0.12),
             new THREE.MeshBasicMaterial({ color: 0x7dd3fc })
@@ -362,7 +447,7 @@
         skyBackdrop.position.set(0, SURFACE_Y + 7.5, -18);
         scene.add(skyBackdrop);
 
-        // Dasar Laut dengan Warna Putih (0xffffff) agar Gambar pasir_laut.jpg Tampil Asli & Jelas
+        // Dasar Laut dengan Tekstur Pasir
         const seaFloor = new THREE.Mesh(
             new THREE.PlaneGeometry(60, 60),
             new THREE.MeshStandardMaterial({
@@ -375,47 +460,71 @@
         seaFloor.position.y = SEA_FLOOR_Y;
         scene.add(seaFloor);
 
-        // Hiasan Terumbu Karang di Dasar Laut menggunakan Gambar karang.jpg Secara Utuh
+        // Terumbu Karang 3D Organik di Dasar Laut (Menggantikan kotak datar)
         const coralGroup = new THREE.Group();
-        const coralMat = new THREE.MeshBasicMaterial({
-            map: texKarang,
-            color: 0xffffff,
-            side: THREE.DoubleSide,
-            blending: THREE.NormalBlending
-        });
+        const coralColors = [0xf97316, 0xec4899, 0x14b8a6, 0xf59e0b, 0x8b5cf6];
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
 
-        const coralConfigs = [
-            { x: -6.2, z: -2.2, w: 2.2, h: 2.2 },
-            { x: -3.5, z: -3.5, w: 1.7, h: 1.7 },
-            { x: 3.8, z: -3.4, w: 1.8, h: 1.8 },
-            { x: 6.4, z: -2.0, w: 2.3, h: 2.3 }
-        ];
-        coralConfigs.forEach(cfg => {
-            const cPlane = new THREE.Mesh(new THREE.PlaneGeometry(cfg.w, cfg.h), coralMat);
-            cPlane.position.set(cfg.x, SEA_FLOOR_Y + cfg.h * 0.48, cfg.z);
-            coralGroup.add(cPlane);
-        });
+        function createCoralCluster(x, z, scale, colorHex) {
+            const cluster = new THREE.Group();
+            cluster.position.set(x, SEA_FLOOR_Y, z);
+
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65 * scale, 1), rockMat);
+            rock.scale.set(1.4, 0.6, 1.2);
+            rock.position.y = 0.2 * scale;
+            cluster.add(rock);
+
+            const branchMat = new THREE.MeshStandardMaterial({
+                color: colorHex,
+                map: texKarang,
+                roughness: 0.55
+            });
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const height = (0.7 + (i % 3) * 0.35) * scale;
+                const branch = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06 * scale, 0.14 * scale, height, 8),
+                    branchMat
+                );
+                branch.position.set(Math.cos(angle) * 0.25 * scale, height * 0.5 + 0.15 * scale, Math.sin(angle) * 0.25 * scale);
+                branch.rotation.z = Math.cos(angle) * 0.32;
+                branch.rotation.x = Math.sin(angle) * 0.32;
+
+                const tip = new THREE.Mesh(new THREE.SphereGeometry(0.11 * scale, 8, 8), branchMat);
+                tip.position.y = height * 0.5;
+                branch.add(tip);
+
+                cluster.add(branch);
+            }
+            coralGroup.add(cluster);
+        }
+
+        createCoralCluster(-6.2, -2.0, 1.15, coralColors[0]);
+        createCoralCluster(-3.8, -3.2, 0.95, coralColors[2]);
+        createCoralCluster(3.6, -3.1, 1.0, coralColors[1]);
+        createCoralCluster(6.3, -1.8, 1.2, coralColors[3]);
+        createCoralCluster(-7.5, 1.2, 0.9, coralColors[4]);
+        createCoralCluster(7.4, 1.4, 0.95, coralColors[2]);
         scene.add(coralGroup);
 
         // ==========================================
-        // 4. MODEL KAPAL SELAM 3D (DENGAN TEKSTUR JELAS)
+        // 4. MODEL KAPAL SELAM 3D (CUTAWAY / TRANSPARAN)
         // ==========================================
         const submarine = new THREE.Group();
         scene.add(submarine);
 
-        // Lambung Luar Semi-Transparan dengan Tekstur besi_kapal.jpg (color putih agar tekstur asli muncul)
         const hullOuterMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             map: texBesiKapal,
             transparent: true,
-            opacity: 0.48,
+            opacity: 0.42,
             roughness: 0.35,
             metalness: 0.3,
             side: THREE.DoubleSide,
             depthWrite: false
         });
 
-        // Rangka & Menara Solid dengan Tekstur besi_kapal.jpg Penuh (Tanpa Transparansi)
         const metalTrimMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             map: texBesiKapal,
@@ -428,13 +537,12 @@
         mainHull.rotation.z = Math.PI / 2;
         submarine.add(mainHull);
 
-        // Haluan Depan (Solid bertekstur besi kapal agar sangat terlihat)
+        // Haluan Depan & Buritan Belakang
         const nose = new THREE.Mesh(new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), metalTrimMat);
         nose.rotation.z = -Math.PI / 2;
         nose.position.x = 2.7;
         submarine.add(nose);
 
-        // Buritan Belakang (Solid bertekstur besi kapal)
         const tail = new THREE.Mesh(new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), metalTrimMat);
         tail.rotation.z = Math.PI / 2;
         tail.position.x = -2.7;
@@ -482,7 +590,7 @@
         periscopeGroup.add(periPipe, periHead);
         submarine.add(periscopeGroup);
 
-        // RUANG KRU dengan Tekstur dinding_kru.jpg Asli
+        // RUANG KRU (Kedap Air)
         const crewRoomGroup = new THREE.Group();
         const crewRoom = new THREE.Mesh(
             new THREE.CylinderGeometry(1.18, 1.18, 2.4, 28),
@@ -496,7 +604,6 @@
         crewRoom.rotation.z = Math.PI / 2;
         crewRoomGroup.add(crewRoom);
 
-        // Sekat Kedap Air
         [-1.22, 1.22].forEach(xPos => {
             const bulkhead = new THREE.Mesh(
                 new THREE.CylinderGeometry(1.48, 1.48, 0.1, 32),
@@ -507,7 +614,6 @@
             crewRoomGroup.add(bulkhead);
         });
 
-        // Jendela Ruang Kru
         const windowMesh = new THREE.Mesh(
             new THREE.CylinderGeometry(0.32, 0.32, 0.15, 24),
             new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xfacc15, emissiveIntensity: 0.7 })
@@ -626,28 +732,28 @@
             {
                 id: 'kompresi',
                 name: 'Tangki Kompresi Udara',
-                localPos: new THREE.Vector3(0, 1.25, 0.7),
+                localPos: new THREE.Vector3(-0.35, 1.35, 0.7),
                 desc: 'Tabung baja bertekanan tinggi yang menyimpan cadangan udara mampat di bagian atas kapal.',
                 physics: 'Saat kapal ingin naik ke permukaan, katup udara dibuka dan udara bertekanan tinggi menyembur masuk ke tangki pemberat untuk mendorong air laut keluar.'
             },
             {
                 id: 'katup',
                 name: 'Katup (Valve)',
-                localPos: new THREE.Vector3(1.95, 1.65, 0),
+                localPos: new THREE.Vector3(2.15, 1.75, 0),
                 desc: 'Pintu saluran mekanis di bagian atas (katup udara) dan bawah (katup air) tangki pemberat.',
                 physics: 'Mengatur pertukaran fluida: saat menyelam katup atas terbuka membuang udara dan katup bawah memasukkan air laut; saat mengapung katup bawah terbuka membuang air.'
             },
             {
                 id: 'pemberat',
                 name: 'Tangki Pemberat',
-                localPos: new THREE.Vector3(-1.95, -0.3, 1.1),
+                localPos: new THREE.Vector3(-2.15, -0.55, 1.1),
                 desc: 'Ruang khusus di sekeliling badan kapal yang dapat diisi air laut atau udara sesuai kebutuhan kedalaman.',
                 physics: 'Mengubah massa total kapal tanpa mengubah volumenya. Menambah air memperbesar massa jenis kapal (ρ = m/V) sehingga kapal tenggelam/menyelam.'
             },
             {
                 id: 'kru',
                 name: 'Ruang Kru (Kedap Air)',
-                localPos: new THREE.Vector3(0, -0.1, 1.35),
+                localPos: new THREE.Vector3(0.45, -0.35, 1.35),
                 desc: 'Kompartemen utama di bagian tengah kapal tempat awak kapal bekerja dan mengendalikan sistem navigasi.',
                 physics: 'Dirancang dengan struktur silinder baja kedap air dan tekanan udara 1 atm agar tetap kering serta melindungi kru dari tekanan hidrostatis laut dalam (P = ρ·g·h).'
             }
