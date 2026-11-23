@@ -226,6 +226,14 @@
                 <span class="text-slate-300">Ruang Udara Tangki:</span>
                 <span class="font-bold text-amber-300"><span id="air-percent-val">85</span>% Udara</span>
             </div>
+
+            <!-- Toggle Tulisan Bagian Kapal Selam di Panel -->
+            <div class="mt-2.5 pt-2.5 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                <span class="text-slate-300">Tulisan Bagian Kapal:</span>
+                <button id="btn-panel-toggle-labels" type="button" class="px-3 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/50 text-sky-300 font-bold transition">
+                    Sembunyikan Tulisan
+                </button>
+            </div>
         </div>
 
         <!-- Section 2: Tombol Aksi Cepat (Preset) -->
@@ -874,12 +882,13 @@
 
         function update3DLabels() {
             if (!state.showLabels) {
-                labelsContainer.style.opacity = '0';
+                labelsContainer.style.display = 'none';
                 labelDefinitions.forEach(def => {
-                    def.element.style.pointerEvents = 'none';
+                    def.element.style.display = 'none';
                 });
                 return;
             }
+            labelsContainer.style.display = 'block';
             labelsContainer.style.opacity = '1';
             const dims = getCanvasDimensions();
             const tempV = new THREE.Vector3();
@@ -890,14 +899,14 @@
 
                 // Sembunyikan jika berada di belakang kamera
                 if (tempV.z > 1) {
-                    def.element.style.opacity = '0';
-                    def.element.style.pointerEvents = 'none';
+                    def.element.style.display = 'none';
                     return;
                 }
 
                 const x = (tempV.x * 0.5 + 0.5) * dims.width;
                 const y = (-(tempV.y * 0.5) + 0.5) * dims.height;
 
+                def.element.style.display = 'block';
                 def.element.style.opacity = '1';
                 def.element.style.pointerEvents = 'auto';
                 def.element.style.left = `${x}px`;
@@ -1031,7 +1040,9 @@
         // Toggle Label 3D
         const btnToggleLabels = document.getElementById('btn-toggle-labels');
         const labelToggleText = document.getElementById('label-toggle-text');
-        btnToggleLabels.addEventListener('click', () => {
+        const btnPanelToggleLabels = document.getElementById('btn-panel-toggle-labels');
+
+        function toggleSubmarineLabels() {
             state.showLabels = !state.showLabels;
             if (!state.showLabels) {
                 hidePartInfo();
@@ -1039,7 +1050,19 @@
             labelToggleText.textContent = state.showLabels ? 'Label 3D: Aktif' : 'Label 3D: Sembunyi';
             btnToggleLabels.classList.toggle('text-sky-300', state.showLabels);
             btnToggleLabels.classList.toggle('text-slate-400', !state.showLabels);
-        });
+
+            if (btnPanelToggleLabels) {
+                btnPanelToggleLabels.textContent = state.showLabels ? 'Sembunyikan Tulisan' : 'Tampilkan Tulisan';
+                btnPanelToggleLabels.classList.toggle('text-sky-300', state.showLabels);
+                btnPanelToggleLabels.classList.toggle('text-slate-300', !state.showLabels);
+            }
+            update3DLabels();
+        }
+
+        btnToggleLabels.addEventListener('click', toggleSubmarineLabels);
+        if (btnPanelToggleLabels) {
+            btnPanelToggleLabels.addEventListener('click', toggleSubmarineLabels);
+        }
 
         // Toggle Panel Kontrol
         const btnTogglePanel = document.getElementById('btn-toggle-panel');
