@@ -325,7 +325,7 @@
 
         const initDims = getCanvasDimensions();
         const camera = new THREE.PerspectiveCamera(45, initDims.width / initDims.height, 0.1, 200);
-        const defaultCamPos = new THREE.Vector3(0, 1.5, initDims.isMobile ? 21.5 : 16.5);
+        const defaultCamPos = new THREE.Vector3(0, 0.2, initDims.isMobile ? 22.5 : 17.5);
         camera.position.copy(defaultCamPos);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -341,7 +341,7 @@
         controls.minDistance = 6;
         controls.maxDistance = 35;
         controls.maxPolarAngle = Math.PI * 0.88;
-        controls.target.set(0, initDims.isMobile ? -1.8 : -1.5, 0);
+        controls.target.set(0, initDims.isMobile ? -2.2 : -1.8, 0);
 
         // --- 3. PENCAHAYAAN (LIGHTING) ---
         const ambientLight = new THREE.AmbientLight(0x7dd3fc, 0.65);
@@ -365,7 +365,7 @@
 
         // --- 4. LINGKUNGAN LAUT & PERMUKAAN AIR ---
         const SEA_SURFACE_Y = 2.2;
-        const SEA_FLOOR_Y = -9.5;
+        const SEA_FLOOR_Y = -7.2;
 
         // Langit / Latar Atas Permukaan
         const skyGeo = new THREE.PlaneGeometry(140, 50);
@@ -938,7 +938,7 @@
 
                 // Posisi Y: Melayang di pertengahan kedalaman air
                 const midRatio = (wPct - 36) / 29; // 0 s.d. 1
-                state.subTargetY = -1.8 - midRatio * 2.2;
+                state.subTargetY = -1.4 - midRatio * 1.6;
             } else {
                 // MENYELAM (66% - 100% Air)
                 statusBadgeEl.textContent = 'MENYELAM';
@@ -947,9 +947,9 @@
                 densityRelEl.className = 'text-[10px] font-semibold text-sky-400 mt-0.5';
                 explanationTextEl.textContent = 'Katup terbuka memasukkan air laut ke tangki pemberat dan mengeluarkan udara. Massa jenis total kapal menjadi lebih besar daripada air laut sehingga gaya berat melampaui gaya apung dan kapal turun menyelam.';
 
-                // Posisi Y: Menyelam dalam mendekati dasar laut
+                // Posisi Y: Menyelam dalam mendekati dasar laut tanpa keluar dari area pandang atas
                 const diveRatio = (wPct - 66) / 34; // 0 s.d. 1
-                state.subTargetY = -4.5 - diveRatio * 3.1;
+                state.subTargetY = -3.3 - diveRatio * 1.9;
             }
 
             // Update Ketinggian Air Visual di Dalam Tangki Pemberat (Cutaway)
@@ -1032,8 +1032,8 @@
         // Reset Kamera
         document.getElementById('btn-reset-cam').addEventListener('click', () => {
             const dims = getCanvasDimensions();
-            camera.position.set(0, 1.5, dims.isMobile ? 21.5 : 16.5);
-            controls.target.set(0, dims.isMobile ? -1.8 : -1.5, 0);
+            camera.position.set(0, 0.2, dims.isMobile ? 22.5 : 17.5);
+            controls.target.set(0, dims.isMobile ? -2.2 : -1.8, 0);
             controls.update();
         });
 
