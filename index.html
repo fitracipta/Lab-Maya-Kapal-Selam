@@ -52,4 +52,893 @@
             border: 3px solid #ffffff;
             cursor: pointer;
             margin-top: -8px;
-            box-shadow: 0 2px 6px rgba(0,
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 999px;
+            border: 1px solid #334155;
+        }
+        /* 3D Floating Labels */
+        .label-3d {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(56, 189, 248, 0.65);
+            color: #f1f5f9;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            pointer-events: auto;
+            user-select: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+            transition: all 0.2s ease;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .label-3d:hover {
+            background: #0284c7;
+            border-color: #ffffff;
+            transform: translate(-50%, -50%) scale(1.08);
+            z-index: 20;
+        }
+        .label-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #38bdf8;
+            display: inline-block;
+            box-shadow: 0 0 6px #38bdf8;
+        }
+        /* Scrollbar halus untuk panel mobile */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Area Visualisasi 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- Wadah Label 3D Interaktif -->
+    <div id="labels-container" class="fixed inset-0 pointer-events-none z-10 overflow-hidden"></div>
+
+    <!-- Header / Navigasi Atas -->
+    <header class="fixed top-0 left-0 right-0 z-30 p-3 md:p-4 flex items-center justify-between pointer-events-none">
+        <div class="flex items-center gap-2.5 bg-slate-900/85 backdrop-blur-md border border-slate-700/70 px-3 py-2 rounded-2xl shadow-xl pointer-events-auto">
+            <img src="./assets/ikon_kapal.jpg" alt="Ikon Kapal Selam" onerror="this.style.display='none'" class="w-9 h-9 rounded-xl object-cover border border-sky-400/50 shadow-sm">
+            <div>
+                <h1 class="text-xs md:text-sm font-bold text-sky-400 tracking-wide leading-tight">LAB MAYA FISIKA 3D</h1>
+                <p class="text-[11px] md:text-xs text-slate-300 font-medium">Prinsip Kerja Kapal Selam</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="btn-toggle-labels" class="bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-sky-500/50 text-sky-300 text-xs font-semibold px-3 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-sky-400" id="label-indicator"></span>
+                <span>Label 3D</span>
+            </button>
+            <button id="btn-toggle-panel" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5">
+                <span id="panel-btn-text">Sembunyikan Panel</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Kartu Penjelasan Komponen (Muncul saat label 3D diklik) -->
+    <div id="part-info-modal" class="hidden fixed top-16 left-3 right-3 md:left-4 md:right-auto md:w-80 z-40 bg-slate-900/95 backdrop-blur-lg border border-sky-400/60 rounded-2xl p-4 shadow-2xl transition-all">
+        <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-500/30">Komponen Kapal Selam</span>
+                <h3 id="part-info-title" class="text-base font-bold text-white mt-1">Nama Bagian</h3>
+            </div>
+            <button id="close-part-info" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold">✕</button>
+        </div>
+        <p id="part-info-desc" class="text-xs text-slate-300 leading-relaxed mb-2.5">Deskripsi komponen.</p>
+        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5">
+            <p class="text-[11px] font-semibold text-amber-300 mb-0.5">Prinsip Fisika:</p>
+            <p id="part-info-physics" class="text-[11px] text-slate-300 leading-snug">Penjelasan fisika.</p>
+        </div>
+    </div>
+
+    <!-- Panel Kontrol & Data Fisika -->
+    <aside id="control-panel" class="fixed bottom-0 left-0 right-0 h-[45vh] md:h-auto md:max-h-[calc(100vh-5.5rem)] md:top-20 md:right-4 md:left-auto md:w-96 z-20 bg-slate-900/95 md:bg-slate-900/90 backdrop-blur-xl border-t md:border border-slate-700/80 md:rounded-2xl shadow-2xl flex flex-col transition-transform duration-300">
+        
+        <div class="overflow-y-auto custom-scroll p-4 space-y-4 flex-1">
+            
+            <!-- Kontrol Slider Volume Air -->
+            <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-3.5">
+                <div class="flex justify-between items-center mb-2">
+                    <label for="water-slider" class="text-xs font-bold text-slate-200">Volume Air Tangki Pemberat</label>
+                    <span id="water-percent-display" class="text-sm font-extrabold text-sky-400 bg-sky-950 px-2.5 py-0.5 rounded-lg border border-sky-500/40">20%</span>
+                </div>
+                <input type="range" id="water-slider" min="0" max="100" value="20">
+                <div class="flex justify-between text-[10px] text-slate-400 mt-1.5 font-medium">
+                    <span>0% (Kosong/Udara)</span>
+                    <span>50% (Seimbang)</span>
+                    <span>100% (Penuh Air)</span>
+                </div>
+
+                <!-- Tombol Aksi Cepat (Preset) -->
+                <div class="grid grid-cols-3 gap-2 mt-3">
+                    <button id="btn-float" class="bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-2 rounded-xl shadow transition flex flex-col items-center justify-center">
+                        <span>Mengapung</span>
+                        <span class="text-[9px] font-normal opacity-90">Udara Kompresi</span>
+                    </button>
+                    <button id="btn-hover" class="bg-amber-600/90 hover:bg-amber-500 text-white text-xs font-bold py-2 px-2 rounded-xl shadow transition flex flex-col items-center justify-center">
+                        <span>Melayang</span>
+                        <span class="text-[9px] font-normal opacity-90">50% Air</span>
+                    </button>
+                    <button id="btn-dive" class="bg-sky-600/90 hover:bg-sky-500 text-white text-xs font-bold py-2 px-2 rounded-xl shadow transition flex flex-col items-center justify-center">
+                        <span>Menyelam</span>
+                        <span class="text-[9px] font-normal opacity-90">90% Air</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Data Fisika Real-Time -->
+            <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-3.5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Data Fisika Real-Time</h2>
+                    <span id="status-badge" class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">
+                        MENGAPUNG
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700/70">
+                        <p class="text-[10px] text-slate-400">Massa Jenis Air Laut (ρ<sub>air</sub>)</p>
+                        <p class="text-sm font-bold text-cyan-300 mt-0.5">1.025 <span class="text-[10px] font-normal text-slate-400">kg/m³</span></p>
+                    </div>
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700/70">
+                        <p class="text-[10px] text-slate-400">Massa Jenis Kapal (ρ<sub>kapal</sub>)</p>
+                        <p id="ship-density-display" class="text-sm font-bold text-amber-300 mt-0.5">860 <span class="text-[10px] font-normal text-slate-400">kg/m³</span></p>
+                    </div>
+                </div>
+
+                <!-- Perbandingan Visual Massa Jenis -->
+                <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700/60">
+                    <div class="flex justify-between items-center text-[11px] font-semibold mb-1">
+                        <span class="text-slate-300">Perbandingan Massa Jenis:</span>
+                        <span id="density-formula" class="text-emerald-400 font-mono">ρ_kapal &lt; ρ_air</span>
+                    </div>
+                    <p id="status-explanation" class="text-xs text-slate-300 leading-relaxed">
+                        Tangki pemberat berisi banyak udara sehingga massa jenis total kapal lebih kecil daripada air laut. Gaya angkat ke atas (Fa) mendorong kapal naik ke permukaan.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Kontrol Tambahan & Petunjuk -->
+            <div class="flex items-center justify-between gap-2 pt-1">
+                <button id="btn-toggle-labels-panel" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold py-2 px-3 rounded-xl transition">
+                    Sembunyikan Tulisan Bagian
+                </button>
+                <button id="btn-reset-cam" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold py-2 px-3 rounded-xl transition">
+                    Reset Kamera
+                </button>
+            </div>
+            <p class="text-[10px] text-center text-slate-400">
+                Sentuh/geser layar 3D untuk memutar • Cubit/scroll untuk zoom • Klik tulisan bagian kapal untuk detail fungsi.
+            </p>
+        </div>
+    </aside>
+
+    <script>
+        // ==========================================
+        // 1. INISIALISASI SCENE, KAMERA & RENDERER
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x031527);
+        scene.fog = new THREE.FogExp2(0x041e38, 0.022);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.minDistance = 5;
+        controls.maxDistance = 26;
+        controls.maxPolarAngle = Math.PI * 0.85;
+
+        function setupResponsiveCamera() {
+            const isMobile = window.innerWidth < 768;
+            const panelHidden = document.body.classList.contains('panel-hidden');
+            if (isMobile && !panelHidden) {
+                camera.position.set(0, 1.2, 16.5);
+                controls.target.set(0, -1.2, 0);
+            } else {
+                camera.position.set(0, 1.5, 13.5);
+                controls.target.set(0, -1.0, 0);
+            }
+            controls.update();
+        }
+        setupResponsiveCamera();
+
+        // ==========================================
+        // 2. PEMUATAN TEKSTUR ASET (.JPG)
+        // ==========================================
+        const textureLoader = new THREE.TextureLoader();
+
+        function loadSafeTexture(path, repeatX = 1, repeatY = 1) {
+            const tex = textureLoader.load(
+                path,
+                (loadedTex) => {
+                    loadedTex.needsUpdate = true;
+                },
+                undefined,
+                () => {
+                    console.warn('Aset belum ditemukan, menggunakan warna standar:', path);
+                }
+            );
+            if (repeatX > 1 || repeatY > 1) {
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(repeatX, repeatY);
+            }
+            return tex;
+        }
+
+        const texPasirLaut = loadSafeTexture('./assets/pasir_laut.jpg', 8, 8);
+        const texBesiKapal = loadSafeTexture('./assets/besi_kapal.jpg', 2, 1);
+        const texDindingKru = loadSafeTexture('./assets/dinding_kru.jpg', 2, 2);
+        const texKarang = loadSafeTexture('./assets/karang.jpg', 1, 1);
+
+        // ==========================================
+        // 3. PENCAHAYAAN & LINGKUNGAN BAWAH LAUT
+        // ==========================================
+        const ambientLight = new THREE.AmbientLight(0x7dd3fc, 0.85);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.3);
+        sunLight.position.set(8, 18, 10);
+        sunLight.castShadow = true;
+        scene.add(sunLight);
+
+        const underGlow = new THREE.PointLight(0x0ea5e9, 1.1, 30);
+        underGlow.position.set(0, -5, 6);
+        scene.add(underGlow);
+
+        // Permukaan Air Laut (Y = 2.6)
+        const SURFACE_Y = 2.6;
+        const SEA_FLOOR_Y = -5.4;
+
+        // Bidang Permukaan Air
+        const waterSurfaceGeo = new THREE.PlaneGeometry(60, 60, 32, 32);
+        const waterSurfaceMat = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.42,
+            roughness: 0.15,
+            metalness: 0.3,
+            side: THREE.DoubleSide
+        });
+        const waterSurface = new THREE.Mesh(waterSurfaceGeo, waterSurfaceMat);
+        waterSurface.rotation.x = -Math.PI / 2;
+        waterSurface.position.y = SURFACE_Y;
+        scene.add(waterSurface);
+
+        // Garis Batas Permukaan Laut yang Jelas
+        const waterLineGeo = new THREE.BoxGeometry(60, 0.08, 0.12);
+        const waterLineMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc });
+        const waterLine = new THREE.Mesh(waterLineGeo, waterLineMat);
+        waterLine.position.set(0, SURFACE_Y, 2.2);
+        scene.add(waterLine);
+
+        // Langit / Atmosfer di Atas Air
+        const skyGeo = new THREE.PlaneGeometry(60, 15);
+        const skyMat = new THREE.MeshBasicMaterial({ color: 0x0c4a6e, side: THREE.DoubleSide });
+        const skyBackdrop = new THREE.Mesh(skyGeo, skyMat);
+        skyBackdrop.position.set(0, SURFACE_Y + 7.5, -18);
+        scene.add(skyBackdrop);
+
+        // Dasar Laut dengan Tekstur pasir_laut.jpg
+        const seaFloorGeo = new THREE.PlaneGeometry(60, 60);
+        const seaFloorMat = new THREE.MeshStandardMaterial({
+            color: 0xdbeafe,
+            map: texPasirLaut,
+            roughness: 0.9,
+            metalness: 0.05
+        });
+        const seaFloor = new THREE.Mesh(seaFloorGeo, seaFloorMat);
+        seaFloor.rotation.x = -Math.PI / 2;
+        seaFloor.position.y = SEA_FLOOR_Y;
+        seaFloor.receiveShadow = true;
+        scene.add(seaFloor);
+
+        // Hiasan Terumbu Karang & Batu Dasar Laut menggunakan karang.jpg
+        const coralGroup = new THREE.Group();
+        const coralMat = new THREE.MeshStandardMaterial({
+            map: texKarang,
+            color: 0xffedd5,
+            roughness: 0.6
+        });
+        const coralPositions = [
+            { x: -6.5, z: -2.5, s: 0.8 },
+            { x: -4.2, z: -3.2, s: 0.6 },
+            { x: 5.8, z: -2.8, s: 0.9 },
+            { x: 7.5, z: -1.8, s: 0.65 },
+            { x: -7.8, z: 1.5, s: 0.7 },
+            { x: 6.8, z: 2.0, s: 0.75 }
+        ];
+        coralPositions.forEach(pos => {
+            const cGeo = new THREE.DodecahedronGeometry(pos.s, 1);
+            const cMesh = new THREE.Mesh(cGeo, coralMat);
+            cMesh.position.set(pos.x, SEA_FLOOR_Y + pos.s * 0.55, pos.z);
+            cMesh.scale.set(1.2, 1.4, 1.0);
+            coralGroup.add(cMesh);
+        });
+        scene.add(coralGroup);
+
+        // ==========================================
+        // 4. MODEL KAPAL SELAM 3D (CUTAWAY / TRANSPARAN)
+        // ==========================================
+        const submarine = new THREE.Group();
+        scene.add(submarine);
+
+        // Material Lambung Luar Semi-Transparan dengan Tekstur besi_kapal.jpg
+        const hullOuterMat = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            map: texBesiKapal,
+            transparent: true,
+            opacity: 0.34,
+            roughness: 0.35,
+            metalness: 0.4,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        // Material Rangka Logam Solid
+        const metalTrimMat = new THREE.MeshStandardMaterial({
+            color: 0xeab308,
+            map: texBesiKapal,
+            roughness: 0.4,
+            metalness: 0.6
+        });
+
+        // 1. Lambung Utama (Silinder & Haluan/Buritan)
+        const mainHullGeo = new THREE.CylinderGeometry(1.55, 1.55, 5.4, 32, 1, true);
+        const mainHull = new THREE.Mesh(mainHullGeo, hullOuterMat);
+        mainHull.rotation.z = Math.PI / 2;
+        submarine.add(mainHull);
+
+        // Haluan Depan (Kanan)
+        const noseGeo = new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const nose = new THREE.Mesh(noseGeo, hullOuterMat);
+        nose.rotation.z = -Math.PI / 2;
+        nose.position.x = 2.7;
+        submarine.add(nose);
+
+        // Buritan Belakang (Kiri)
+        const tailGeo = new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const tail = new THREE.Mesh(tailGeo, hullOuterMat);
+        tail.rotation.z = Math.PI / 2;
+        tail.position.x = -2.7;
+        submarine.add(tail);
+
+        // Cincin Rangka Cutaway agar bentuk kapal sangat tegas
+        [-2.7, -1.25, 1.25, 2.7].forEach(xPos => {
+            const ringGeo = new THREE.TorusGeometry(1.56, 0.05, 12, 36);
+            const ring = new THREE.Mesh(ringGeo, metalTrimMat);
+            ring.rotation.y = Math.PI / 2;
+            ring.position.x = xPos;
+            submarine.add(ring);
+        });
+
+        // Baling-baling Belakang
+        const propellerGroup = new THREE.Group();
+        propellerGroup.position.x = -4.35;
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.4, 16), metalTrimMat);
+        hub.rotation.z = Math.PI / 2;
+        propellerGroup.add(hub);
+        for (let i = 0; i < 4; i++) {
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.22), metalTrimMat);
+            blade.rotation.x = (i * Math.PI) / 2;
+            propellerGroup.add(blade);
+        }
+        submarine.add(propellerGroup);
+
+        // Menara Kapal (Conning Tower) & Periskop
+        const towerGeo = new THREE.CylinderGeometry(0.65, 0.78, 1.15, 24);
+        const tower = new THREE.Mesh(towerGeo, metalTrimMat);
+        tower.position.set(0.2, 1.95, 0);
+        submarine.add(tower);
+
+        // Periskop
+        const periscopeGroup = new THREE.Group();
+        periscopeGroup.position.set(0.35, 2.5, 0);
+        const periPipe = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, 0.95, 16),
+            new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.2 })
+        );
+        periPipe.position.y = 0.45;
+        const periHead = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.16, 0.16),
+            new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.5 })
+        );
+        periHead.position.set(0.08, 0.9, 0);
+        periscopeGroup.add(periPipe, periHead);
+        submarine.add(periscopeGroup);
+
+        // 2. RUANG KRU (Kedap Air di Bagian Tengah) dengan tekstur dinding_kru.jpg
+        const crewRoomGroup = new THREE.Group();
+        const crewWallGeo = new THREE.CylinderGeometry(1.18, 1.18, 2.4, 28);
+        const crewWallMat = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8,
+            map: texDindingKru,
+            roughness: 0.45,
+            metalness: 0.5
+        });
+        const crewRoom = new THREE.Mesh(crewWallGeo, crewWallMat);
+        crewRoom.rotation.z = Math.PI / 2;
+        crewRoomGroup.add(crewRoom);
+
+        // Sekat Kedap Air Kiri & Kanan Ruang Kru
+        [-1.22, 1.22].forEach(xPos => {
+            const bulkhead = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.48, 1.48, 0.1, 32),
+                new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 })
+            );
+            bulkhead.rotation.z = Math.PI / 2;
+            bulkhead.position.x = xPos;
+            crewRoomGroup.add(bulkhead);
+        });
+
+        // Jendela Kaca Ruang Kru (menunjukkan ruang tetap kering & terang)
+        const windowMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.32, 0.32, 0.15, 24),
+            new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xfacc15, emissiveIntensity: 0.7 })
+        );
+        windowMesh.rotation.x = Math.PI / 2;
+        windowMesh.position.set(0, 0.15, 1.15);
+        crewRoomGroup.add(windowMesh);
+        submarine.add(crewRoomGroup);
+
+        // 3. TANGKI PEMBERAT (BALLAST TANKS - Kiri & Kanan)
+        const ballastWaterMat = new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            emissive: 0x0369a1,
+            emissiveIntensity: 0.35,
+            transparent: true,
+            opacity: 0.85,
+            roughness: 0.2
+        });
+
+        const tankCasingMat = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.22,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        const ballastTanks = [];
+        [-1.95, 1.95].forEach(xPos => {
+            const tankGroup = new THREE.Group();
+            tankGroup.position.set(xPos, -0.1, 0);
+
+            // Dinding luar tangki transparan
+            const casing = new THREE.Mesh(new THREE.CylinderGeometry(1.22, 1.22, 1.3, 24), tankCasingMat);
+            casing.rotation.z = Math.PI / 2;
+            tankGroup.add(casing);
+
+            // Air dinamis di dalam tangki (menggunakan kotak/silinder yang diskalakan dari bawah)
+            const waterFillGeo = new THREE.BoxGeometry(1.24, 2.2, 1.85);
+            // Geser pivot ke bawah agar scale.y naik dari dasar tangki
+            waterFillGeo.translate(0, 1.1, 0);
+            const waterFill = new THREE.Mesh(waterFillGeo, ballastWaterMat);
+            waterFill.position.y = -1.1;
+            tankGroup.add(waterFill);
+
+            submarine.add(tankGroup);
+            ballastTanks.push(waterFill);
+        });
+
+        // 4. TANGKI KOMPRESI UDARA (Tabung Tekanan Tinggi di Atas Ruang Kru)
+        const airTankMat = new THREE.MeshStandardMaterial({
+            color: 0xf97316,
+            roughness: 0.3,
+            metalness: 0.6
+        });
+        const compAirTank = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.8, 20), airTankMat);
+        compAirTank.rotation.z = Math.PI / 2;
+        compAirTank.position.set(0, 1.05, 0.45);
+        submarine.add(compAirTank);
+
+        // Pipa Saluran Udara Kompresi ke Tangki Pemberat
+        const pipeMat = new THREE.MeshStandardMaterial({ color: 0xfdba74, metalness: 0.7, roughness: 0.3 });
+        const airPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.8, 12), pipeMat);
+        airPipe.rotation.z = Math.PI / 2;
+        airPipe.position.set(0, 1.05, 0.45);
+        submarine.add(airPipe);
+
+        // 5. KATUP (VALVES) Atas & Bawah pada Tangki Pemberat
+        const valveMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+        const topValves = [];
+        const bottomValves = [];
+
+        [-1.95, 1.95].forEach(xPos => {
+            // Katup Udara Atas
+            const topV = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.14, 0.35), valveMat);
+            topV.position.set(xPos, 1.48, 0);
+            submarine.add(topV);
+            topValves.push(topV);
+
+            // Katup Air Bawah
+            const botV = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.38), valveMat);
+            botV.position.set(xPos, -1.48, 0);
+            submarine.add(botV);
+            bottomValves.push(botV);
+        });
+
+        // ==========================================
+        // 5. SISTEM PARTIKEL GELEMBUNG & UDARA KOMPRESI
+        // ==========================================
+        const bubbles = [];
+        const bubbleGeo = new THREE.SphereGeometry(0.07, 8, 8);
+        const bubbleMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.75 });
+
+        function spawnBubble(worldPos, isCompressedAir = false) {
+            const b = new THREE.Mesh(bubbleGeo, bubbleMat);
+            b.position.copy(worldPos);
+            b.position.x += (Math.random() - 0.5) * 0.4;
+            b.position.z += (Math.random() - 0.5) * 0.4;
+            const scale = isCompressedAir ? (0.6 + Math.random() * 0.8) : (0.5 + Math.random() * 0.9);
+            b.scale.setScalar(scale);
+            scene.add(b);
+            bubbles.push({
+                mesh: b,
+                vy: isCompressedAir ? (-0.03 - Math.random() * 0.03) : (0.04 + Math.random() * 0.05),
+                vx: (Math.random() - 0.5) * 0.015,
+                life: 0,
+                maxLife: isCompressedAir ? 35 : 90
+            });
+        }
+
+        // ==========================================
+        // 6. LABEL 3D INTERAKTIF & KARTU PENJELASAN
+        // ==========================================
+        const partsData = [
+            {
+                id: 'periskop',
+                name: 'Periskop',
+                localPos: new THREE.Vector3(0.45, 3.45, 0),
+                desc: 'Tabung optik dengan susunan prisma dan lensa di bagian atas menara kapal selam.',
+                physics: 'Memanfaatkan hukum pemantulan cahaya (cermin/prisma bersudut 45°) sehingga kru dapat mengamati kondisi di atas permukaan laut saat lambung kapal masih terendam.'
+            },
+            {
+                id: 'kompresi',
+                name: 'Tangki Kompresi Udara',
+                localPos: new THREE.Vector3(0, 1.25, 0.7),
+                desc: 'Tabung baja bertekanan tinggi yang menyimpan cadangan udara mampat di bagian atas kapal.',
+                physics: 'Saat kapal ingin naik ke permukaan, katup udara dibuka dan udara bertekanan tinggi menyembur masuk ke tangki pemberat untuk mendorong air laut keluar.'
+            },
+            {
+                id: 'katup',
+                name: 'Katup (Valve)',
+                localPos: new THREE.Vector3(1.95, 1.65, 0),
+                desc: 'Pintu saluran mekanis di bagian atas (katup udara) dan bawah (katup air) tangki pemberat.',
+                physics: 'Mengatur pertukaran fluida: saat menyelam katup atas terbuka membuang udara dan katup bawah memasukkan air laut; saat mengapung katup bawah terbuka membuang air.'
+            },
+            {
+                id: 'pemberat',
+                name: 'Tangki Pemberat',
+                localPos: new THREE.Vector3(-1.95, -0.3, 1.1),
+                desc: 'Ruang khusus di sekeliling badan kapal yang dapat diisi air laut atau udara sesuai kebutuhan kedalaman.',
+                physics: 'Mengubah massa total kapal tanpa mengubah volumenya. Menambah air memperbesar massa jenis kapal (ρ = m/V) sehingga kapal tenggelam/menyelam.'
+            },
+            {
+                id: 'kru',
+                name: 'Ruang Kru (Kedap Air)',
+                localPos: new THREE.Vector3(0, -0.1, 1.35),
+                desc: 'Kompartemen utama di bagian tengah kapal tempat awak kapal bekerja dan mengendalikan sistem navigasi.',
+                physics: 'Dirancang dengan struktur silinder baja kedap air dan tekanan udara 1 atm agar tetap kering serta melindungi kru dari tekanan hidrostatis laut dalam (P = ρ·g·h).'
+            }
+        ];
+
+        const labelsContainer = document.getElementById('labels-container');
+        const labelElements = {};
+        let labelsVisible = true;
+
+        partsData.forEach(part => {
+            const el = document.createElement('button');
+            el.className = 'label-3d';
+            el.innerHTML = `<span class="label-dot"></span><span>${part.name}</span>`;
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openPartInfo(part);
+            });
+            labelsContainer.appendChild(el);
+            labelElements[part.id] = el;
+        });
+
+        const partModal = document.getElementById('part-info-modal');
+        function openPartInfo(part) {
+            document.getElementById('part-info-title').textContent = part.name;
+            document.getElementById('part-info-desc').textContent = part.desc;
+            document.getElementById('part-info-physics').textContent = part.physics;
+            partModal.classList.remove('hidden');
+        }
+        document.getElementById('close-part-info').addEventListener('click', () => {
+            partModal.classList.add('hidden');
+        });
+
+        function update3DLabels() {
+            const canvasRect = renderer.domElement.getBoundingClientRect();
+            const tempVec = new THREE.Vector3();
+
+            partsData.forEach(part => {
+                const el = labelElements[part.id];
+                if (!labelsVisible) {
+                    el.style.display = 'none';
+                    return;
+                }
+
+                tempVec.copy(part.localPos);
+                submarine.localToWorld(tempVec);
+                tempVec.project(camera);
+
+                if (tempVec.z > 1) {
+                    el.style.display = 'none';
+                    return;
+                }
+
+                const x = (tempVec.x * 0.5 + 0.5) * canvasRect.width + canvasRect.left;
+                const y = (-(tempVec.y * 0.5) + 0.5) * canvasRect.height + canvasRect.top;
+
+                // Sembunyikan jika label keluar dari batas area kanvas 3D
+                if (y < canvasRect.top + 48 || y > canvasRect.bottom - 12 || x < 20 || x > window.innerWidth - 20) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = 'flex';
+                    el.style.left = `${x}px`;
+                    el.style.top = `${y}px`;
+                }
+            });
+        }
+
+        // ==========================================
+        // 7. LOGIKA FISIKA & KONTROL SIMULASI
+        // ==========================================
+        const waterSlider = document.getElementById('water-slider');
+        const waterPercentDisplay = document.getElementById('water-percent-display');
+        const shipDensityDisplay = document.getElementById('ship-density-display');
+        const statusBadge = document.getElementById('status-badge');
+        const densityFormula = document.getElementById('density-formula');
+        const statusExplanation = document.getElementById('status-explanation');
+
+        let targetWaterPercent = 20;
+        let currentWaterPercent = 20;
+        let targetSubY = SURFACE_Y - 0.55;
+        let currentSubY = SURFACE_Y - 0.55;
+        let autoPresetInterval = null;
+
+        function updateSimulationPhysics(percent) {
+            waterPercentDisplay.textContent = `${Math.round(percent)}%`;
+
+            // Hitung massa jenis rata-rata kapal: 750 kg/m3 (0% air) hingga 1300 kg/m3 (100% air)
+            const rhoAir = 1025;
+            const rhoKapal = Math.round(750 + (percent / 100) * 550);
+            shipDensityDisplay.innerHTML = `${rhoKapal} <span class="text-[10px] font-normal text-slate-400">kg/m³</span>`;
+
+            // Tentukan status & target kedalaman Y
+            // Batas bawah aman di atas dasar laut agar kapal tidak tenggelam melewati panel HP
+            const minSafeY = SEA_FLOOR_Y + 1.85; // -3.55
+            const maxFloatY = SURFACE_Y - 0.45;  // 2.15 (menara & sebagian atas lambung muncul)
+            const hoverY = -0.85;
+
+            if (percent <= 35) {
+                // MENGAPUNG
+                const ratio = percent / 35;
+                targetSubY = maxFloatY - ratio * 0.55;
+                statusBadge.textContent = 'MENGAPUNG';
+                statusBadge.className = 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50';
+                densityFormula.textContent = `ρ_kapal (${rhoKapal}) < ρ_air (${rhoAir})`;
+                densityFormula.className = 'text-emerald-400 font-mono';
+                statusExplanation.textContent = 'Tangki pemberat didominasi udara sehingga massa jenis total kapal lebih kecil dari air laut. Menara kapal muncul ke permukaan.';
+            } else if (percent <= 65) {
+                // MELAYANG
+                const ratio = (percent - 35) / 30;
+                targetSubY = (maxFloatY - 0.55) - ratio * (maxFloatY - 0.55 - hoverY) - (ratio * 0.6);
+                statusBadge.textContent = 'MELAYANG';
+                statusBadge.className = 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50';
+                densityFormula.textContent = `ρ_kapal (${rhoKapal}) ≈ ρ_air (${rhoAir})`;
+                densityFormula.className = 'text-amber-400 font-mono';
+                statusExplanation.textContent = 'Volume air dan udara di tangki pemberat seimbang. Gaya berat kapal sama besar dengan gaya angkat Archimedes (W = Fa) sehingga kapal melayang stabil.';
+            } else {
+                // MENYELAM
+                const ratio = (percent - 65) / 35;
+                targetSubY = (hoverY - 0.6) - ratio * ((hoverY - 0.6) - minSafeY);
+                statusBadge.textContent = 'MENYELAM';
+                statusBadge.className = 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/50';
+                densityFormula.textContent = `ρ_kapal (${rhoKapal}) > ρ_air (${rhoAir})`;
+                densityFormula.className = 'text-sky-400 font-mono';
+                statusExplanation.textContent = 'Katup udara terbuka mengeluarkan gelembung udara dan air laut memenuhi tangki pemberat. Massa jenis kapal melebihi air laut sehingga kapal turun.';
+            }
+        }
+
+        // Event Slider Manual
+        waterSlider.addEventListener('input', (e) => {
+            if (autoPresetInterval) {
+                clearInterval(autoPresetInterval);
+                autoPresetInterval = null;
+            }
+            targetWaterPercent = parseFloat(e.target.value);
+            updateSimulationPhysics(targetWaterPercent);
+        });
+
+        // Fungsi Animasi Preset Otomatis
+        function animateToPreset(goalPercent) {
+            if (autoPresetInterval) clearInterval(autoPresetInterval);
+            autoPresetInterval = setInterval(() => {
+                const diff = goalPercent - targetWaterPercent;
+                if (Math.abs(diff) < 0.8) {
+                    targetWaterPercent = goalPercent;
+                    waterSlider.value = goalPercent;
+                    updateSimulationPhysics(goalPercent);
+                    clearInterval(autoPresetInterval);
+                    autoPresetInterval = null;
+                } else {
+                    targetWaterPercent += Math.sign(diff) * 1.2;
+                    waterSlider.value = Math.round(targetWaterPercent);
+                    updateSimulationPhysics(targetWaterPercent);
+                }
+            }, 30);
+        }
+
+        document.getElementById('btn-float').addEventListener('click', () => animateToPreset(15));
+        document.getElementById('btn-hover').addEventListener('click', () => animateToPreset(50));
+        document.getElementById('btn-dive').addEventListener('click', () => animateToPreset(92));
+
+        // Toggle Label 3D (Header & Panel)
+        function toggleLabels() {
+            labelsVisible = !labelsVisible;
+            const indicator = document.getElementById('label-indicator');
+            const panelBtn = document.getElementById('btn-toggle-labels-panel');
+            if (labelsVisible) {
+                indicator.className = 'w-2 h-2 rounded-full bg-sky-400';
+                panelBtn.textContent = 'Sembunyikan Tulisan Bagian';
+            } else {
+                indicator.className = 'w-2 h-2 rounded-full bg-slate-500';
+                panelBtn.textContent = 'Tampilkan Tulisan Bagian';
+                partModal.classList.add('hidden');
+            }
+            update3DLabels();
+        }
+        document.getElementById('btn-toggle-labels').addEventListener('click', toggleLabels);
+        document.getElementById('btn-toggle-labels-panel').addEventListener('click', toggleLabels);
+
+        // Toggle Sembunyikan / Tampilkan Panel Kontrol
+        const controlPanel = document.getElementById('control-panel');
+        const panelBtnText = document.getElementById('panel-btn-text');
+        let panelHidden = false;
+
+        document.getElementById('btn-toggle-panel').addEventListener('click', () => {
+            panelHidden = !panelHidden;
+            if (panelHidden) {
+                document.body.classList.add('panel-hidden');
+                controlPanel.classList.add('translate-y-full', 'md:translate-y-0', 'md:translate-x-[120%]');
+                panelBtnText.textContent = 'Tampilkan Panel';
+            } else {
+                document.body.classList.remove('panel-hidden');
+                controlPanel.classList.remove('translate-y-full', 'md:translate-y-0', 'md:translate-x-[120%]');
+                panelBtnText.textContent = 'Sembunyikan Panel';
+            }
+            setTimeout(() => {
+                onWindowResize();
+                setupResponsiveCamera();
+            }, 310);
+        });
+
+        // Reset Kamera
+        document.getElementById('btn-reset-cam').addEventListener('click', setupResponsiveCamera);
+
+        // ==========================================
+        // 8. LOOP ANIMASI UTAMA
+        // ==========================================
+        const clock = new THREE.Clock();
+        updateSimulationPhysics(targetWaterPercent);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsed = clock.getElapsedTime();
+
+            // Interpolasi halus ketinggian air tangki pemberat
+            const prevWater = currentWaterPercent;
+            currentWaterPercent += (targetWaterPercent - currentWaterPercent) * 0.08;
+            const waterDelta = currentWaterPercent - prevWater;
+
+            // Update ketinggian mesh air di dalam tangki pemberat
+            const fillScale = Math.max(0.01, currentWaterPercent / 100);
+            ballastTanks.forEach(tankWater => {
+                tankWater.scale.y = fillScale;
+            });
+
+            // Animasi Katup & Gelembung saat terjadi perubahan volume air
+            const isDivingProcess = waterDelta > 0.04;     // Air masuk, udara keluar ke atas
+            const isFloatingProcess = waterDelta < -0.04; // Udara kompresi masuk, air terdorong keluar ke bawah
+
+            topValves.forEach((v, idx) => {
+                v.rotation.z = isDivingProcess ? 0.55 : 0;
+                if (isDivingProcess && Math.random() < 0.35) {
+                    const worldPos = new THREE.Vector3();
+                    v.getWorldPosition(worldPos);
+                    spawnBubble(worldPos, false);
+                }
+            });
+
+            bottomValves.forEach((v, idx) => {
+                v.rotation.z = (isDivingProcess || isFloatingProcess) ? -0.55 : 0;
+                if (isFloatingProcess && Math.random() < 0.45) {
+                    const worldPos = new THREE.Vector3();
+                    v.getWorldPosition(worldPos);
+                    spawnBubble(worldPos, true);
+                }
+            });
+
+            // Update partikel gelembung
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                const b = bubbles[i];
+                b.mesh.position.y += b.vy;
+                b.mesh.position.x += b.vx + Math.sin(elapsed * 8 + i) * 0.004;
+                b.life++;
+                if (b.life > b.maxLife || b.mesh.position.y >= SURFACE_Y) {
+                    scene.remove(b.mesh);
+                    bubbles.splice(i, 1);
+                }
+            }
+
+            // Interpolasi gerakan vertikal kapal selam + efek ayunan gelombang alami
+            currentSubY += (targetSubY - currentSubY) * 0.045;
+            const surfaceWave = currentWaterPercent <= 35 ? Math.sin(elapsed * 2.2) * 0.06 : Math.sin(elapsed * 1.2) * 0.02;
+            submarine.position.y = currentSubY + surfaceWave;
+            submarine.rotation.z = Math.sin(elapsed * 1.5) * 0.018;
+
+            // Putar baling-baling
+            propellerGroup.rotation.x += 0.08;
+
+            // Riak lembut permukaan air
+            waterSurface.position.y = SURFACE_Y + Math.sin(elapsed * 1.8) * 0.025;
+
+            controls.update();
+            renderer.render(scene, camera);
+            update3DLabels();
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        animate();
+    </script>
+</body>
+</html>
